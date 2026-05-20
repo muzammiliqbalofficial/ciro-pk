@@ -1,72 +1,162 @@
-# CIRO-PK: Crisis Intelligence & Response Orchestrator - Pakistan
-**Submission for #AISeekho 2026 Google Antigravity Hackathon (Challenge 3)**
+# CIRO-PK: Crisis Intelligence & Response Orchestrator
 
-## Overview
-CIRO-PK is an agentic AI system designed to solve the fragmented and reactive nature of crisis management in Pakistani cities. By fusing multi-modal signals (social media, weather APIs, traffic data, NDMA sensors, citizen reports), CIRO-PK detects crises in real-time, predicts severity, allocates constrained resources, and orchestrates simulated response actions. 
+Submission prototype for **#AISeekho 2026 Google Antigravity Hackathon - Challenge 3**.
 
-Crucially, it utilizes **Google Antigravity** as the core reasoning engine to handle conflicting signals, detect false alarms, and make life-saving resource trade-offs autonomously.
+CIRO-PK fuses multi-source crisis signals, classifies simultaneous incidents, predicts severity, allocates constrained emergency resources, simulates coordinated response actions, and recovers from misinformation — all orchestrated through **5 independent Gemini AI agent calls** on Google Agent Platform (Vertex AI).
 
-## 🏗️ Architecture & Antigravity Usage
-CIRO-PK uses a multi-agent architecture orchestrated by Google Antigravity.
-1. **Signal Fusion Agent**: Ingests unstructured and structured data (Urdu/Roman Urdu/English). Normalizes data into a standard schema.
-2. **Crisis Classifier Agent**: Analyzes fused signals, scores credibility, and clusters them into distinct crisis events (e.g., Flood, Accident) with severity and confidence scores.
-3. **Verifier & False Alarm Handler**: Cross-references low-credibility signals (e.g., Unverified tweets about dam breaches) with ground-truth IoT sensors. Retracts alerts if a false positive is confirmed.
-4. **Resource Allocator Agent**: Manages constrained city resources (ambulances, rescue teams). Uses constraint-based logic (e.g., Life-threatening > Standby, maintain 20% reserve) to resolve conflicts when multiple crises occur simultaneously.
-5. **Stakeholder Notifier Agent**: Generates context-aware, multilingual notifications tailored to specific audiences (Public, Hospitals, Police, Utilities).
+## What The Demo Shows
 
-## 📊 Data Stream Schemas
-Signals are normalized into the following JSON schema before agent processing:
+- **Multi-source signal fusion**: social/citizen posts, weather API, traffic data, NDMA sensor, emergency calls (8 signals, 5 sources).
+- **Two simultaneous crises**: G-10 urban flood and Kashmir Highway road accident — competing for the same limited resources.
+- **False alarm handling**: Rawal Dam breach rumor (credibility 0.10) is cross-checked against NDMA sensor data, verified as false, and publicly retracted.
+- **Multi-agent Gemini reasoning**: 5 separate Gemini 3.1 Flash Lite Preview calls — CLASSIFIER, PREDICTOR, VERIFIER, ALLOCATOR, ORCHESTRATOR — each making independent AI decisions.
+- **Resource optimization**: ambulances, rescue teams, police units, and water tankers allocated with severity-based priority and 20% reserve constraint.
+- **5-step action chain**: dispatch → traffic reroute → hospital alert → utility cutoff → public alert.
+- **Outcome visualization**: before/after congestion, response improvement %, false-alarm waste avoided, stakeholder notifications.
+- **Live weather integration**: OpenWeatherMap API injects real Islamabad weather as a live signal source.
+- **Resilient mode**: if any Gemini call fails, system falls back to deterministic trace — demo never breaks.
+
+## Architecture
+
+```
+Mobile App (Expo React Native)  ──┐
+                                   ├──► POST /api/analyze ──► Flask Backend (Cloud Run)
+Web Dashboard (Vite / React)    ──┘                                    │
+                                                                        ├── SIGNAL_FUSION agent
+                                                                        ├── CLASSIFIER  ──► Gemini 3.1 Flash Lite (Vertex AI)
+                                                                        ├── PREDICTOR   ──► Gemini 3.1 Flash Lite (Vertex AI)
+                                                                        ├── VERIFIER    ──► Gemini 3.1 Flash Lite (Vertex AI)
+                                                                        ├── ALLOCATOR   ──► Gemini 3.1 Flash Lite (Vertex AI)
+                                                                        ├── ORCHESTRATOR──► Gemini 3.1 Flash Lite (Vertex AI)
+                                                                        ├── NOTIFIER agent
+                                                                        └── GEMINI_REASONER ──► Gemini 3.1 Flash Lite (Vertex AI)
+```
+
+1. **Mobile app (Expo)**: Mandatory prototype — crisis map, agent trace log, resource cards, signal stream.
+2. **Web dashboard (Vite/React)**: Optional command-center view with animated Islamabad radar map.
+3. **Backend (Flask / Google Cloud Run)**: Orchestrates all agents, makes 5 Gemini calls per cycle, returns full trace.
+4. **Google Agent Platform (Vertex AI)**: Core AI reasoning engine — Gemini 3.1 Flash Lite Preview powers each agent independently.
+5. **OpenWeatherMap API**: Injects live Islamabad weather as a real signal source.
+
+## Google Agent Platform Integration
+
+Each agent makes an **independent Gemini call** with a specialized prompt:
+
+| Agent | Gemini Role | Decision |
+| --- | --- | --- |
+| CLASSIFIER | Reads all signals, classifies crisis type/severity | Crisis C1 and C2 identification |
+| PREDICTOR | Analyzes flood parameters, predicts spread | Affected radius, vulnerable population, peak ETA |
+| VERIFIER | Cross-checks rumor against sensor data | FALSE_ALARM verdict and retraction |
+| ALLOCATOR | Weighs severity vs. resources, enforces reserve | Ambulance/rescue/police assignment |
+| ORCHESTRATOR | Evaluates 5-step action chain outcome | Side effects and response improvement |
+| GEMINI_REASONER | Final synthesis of all agent outputs | Complete incident summary trace |
+
+Model: `gemini-3.1-flash-lite-preview` via `aiplatform.googleapis.com/v1/projects/.../locations/global`
+
+## Backend API
+
+`POST /api/analyze`
+
+Input:
 ```json
 {
-  "signal_id": "string",
-  "timestamp": "ISO8601",
-  "source_type": "Social | API | Sensor | Telecom | Citizen",
-  "content": "string (multilingual)",
-  "metadata": {
-    "verified_source": "boolean",
-    "geolocation": "Lat/Long or string",
-    "urgency_keywords": ["string"]
-  },
-  "inferred_credibility": "float (0.0 - 1.0)"
+  "signals": [
+    { "id": "S1", "time": "14:28", "source": "Twitter (Anon)", "text": "G-10 mein paani aa gaya", "cred": 0.7 }
+  ]
 }
 ```
 
-## 🛠️ APIs & Tools
-- **Core Orchestrator**: Google Antigravity (Agentic Reasoning, State Management, Tool Calling)
-- **Frontend/Mobile**: React Native (Expo) / React Vite
-- **Simulated External APIs**: 
-  - Weather API (Rainfall data)
-  - Google Maps API (Traffic congestion)
-  - NDMA IoT Sensors (Flood/Seismic mock data)
-  - Telecom Emergency Gateway (15 Call logs)
+Output:
+- `trace`: Per-agent Gemini reasoning logs with timestamps.
+- `crises`: Classified incidents with severity, confidence, radius, population.
+- `allocations`: Resource assignment with priority rank and cost estimate (PKR).
+- `actions`: 5-step simulated response chain with impact metrics.
+- `notifications`: 5 stakeholder messages (Public, Hospital, IESCO, Media, Police).
+- `false_alarms`: Verified false signals with sensor evidence.
+- `mode`: `gemini_live` or `fallback_simulation`.
+- `gemini_status`: Per-call Gemini status.
 
-## ⚖️ Baseline Comparison (Agentic vs Non-Agentic)
-| Metric | Without CIRO-PK (Heuristic/Manual) | With CIRO-PK (Agentic) |
-| :--- | :--- | :--- |
-| **Detection Time** | 15 - 25 minutes | **< 2 minutes** |
-| **Resource Allocation** | First-come, first-served (Chaotic) | **Prioritized (Trauma > Standby)** |
-| **False Alarm Response**| Rescue units diverted to rumors | **0 resources wasted (Debunked instantly)** |
-| **Public Messaging** | Generic, delayed | **Targeted, Urdu/Roman Urdu, location-specific** |
-| **Contradiction Handling**| System freezes or alerts blindly | **Agent triggers verification sub-routine** |
+## Environment Variables
 
-## 💰 Cost & Latency Analysis
-- **Latency**: End-to-end processing (Ingestion -> Decision -> Action) takes ~1.5 to 3 seconds. The Verifier agent adds ~800ms when cross-checking sensors.
-- **Cost Estimate**: Assuming Google Antigravity LLM calls:
-  - Signal Fusion & Classification: ~$0.002 per batch.
-  - Allocation & Notification: ~$0.003 per crisis cycle.
-  - Total cost per incident response: < $0.01.
+Root web/backend `.env`:
+```env
+VITE_BACKEND_URL=https://ciro-backend-840960568725.asia-south1.run.app
+VITE_MAPS_KEY=optional_maps_key
+GEMINI_MODEL=gemini-3.1-flash-lite-preview
+GOOGLE_CLOUD_PROJECT=iro-pk-backend
+OWM_API_KEY=your_openweathermap_key
+```
 
-## 🚀 Scalability Discussion
-The agentic workflow is highly parallelizable. The **Signal Fusion Agent** can scale horizontally to process thousands of social media firehose tweets per second. State management is stateless between cycles, meaning multiple cities (e.g., Karachi, Lahore, Islamabad) can run isolated CIRO-PK orchestrators simultaneously without bottlenecking the core logic engine.
+Mobile `.env`:
+```env
+EXPO_PUBLIC_BACKEND_URL=https://ciro-backend-840960568725.asia-south1.run.app
+EXPO_PUBLIC_MAPS_KEY=optional_maps_key
+```
 
-## 🔒 Privacy & Safety Note
-- **Anonymization**: All citizen reports and social media handles are stripped of PII (Personally Identifiable Information) at the Signal Fusion layer.
-- **Safety**: The system runs in a "Human-in-the-Loop" (HITL) mode for irreversible actions (e.g., dispatching physical assets). Simulation mode auto-approves for demonstration.
+## Run Locally
 
-## ⚠️ Assumptions & Limitations
-- **Assumptions**: IoT sensors and APIs have >99% uptime. The sentiment/NLP engine accurately parses Roman Urdu slang.
-- **Limitations**: In extreme infrastructure collapse (e.g., complete cellular blackout), the Signal Fusion agent loses 80% of its data vectors, forcing reliance purely on NDMA hardwired sensors.
+Backend:
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+```
 
-## 📝 Robustness Evidence (Edge Cases Handled)
-1. **False Alarm**: A panic tweet about a dam breaking triggers the Verifier. It checks sensors, finds them normal, flags the signal as a false alarm, and sends a public retraction.
-2. **Resource Conflict**: A flood and a fatal accident occur simultaneously. Both need ambulances. The Allocator agent correctly trades off resources, prioritizing the life-threatening accident while maintaining a 20% reserve.
+Web dashboard:
+```bash
+npm install
+npm run dev
+```
+
+Mobile:
+```bash
+cd ciro-pk-mobile
+npm install
+npx expo start
+```
+
+## Google Cloud / Credits Usage
+
+- **Google Cloud Run** (`asia-south1`): Hosts the Flask orchestrator — auto-scales to zero when idle.
+- **Vertex AI Agent Platform**: Powers all 6 Gemini agent calls using `gemini-3.1-flash-lite-preview` via global endpoint.
+- **Google Maps Platform**: Traffic/map evidence simulated for prototype reliability; map background uses Islamabad satellite imagery.
+- **OpenWeatherMap API**: Live Islamabad weather injected as real signal source.
+- **Estimated cost per demo cycle**: ~$0.001–0.003 USD (6 short Gemini calls × ~100 tokens each).
+- **Latency**: ~30–35 seconds per full cycle (6 sequential Gemini calls); parallelizable in production.
+
+## Baseline Comparison
+
+| Metric | Manual / Heuristic Baseline | CIRO-PK Agentic Flow |
+| --- | --- | --- |
+| Detection time | 15–25 minutes | Under 35 seconds (end-to-end) |
+| Classification | Human dispatcher judgment | Gemini AI classification with confidence score |
+| Resource allocation | First-come, first-served | Severity + urgency + 20% reserve constraint |
+| False alarm response | Resources may be diverted | Sensor cross-check + public retraction in <1s |
+| Stakeholder messaging | Generic, delayed | Audience-specific, multilingual (Urdu/English) |
+| Side-effect detection | None | Automatic (e.g. rerouting congestion flagged) |
+| Failure handling | Manual intervention | Automatic fallback preserves full demo |
+
+## Robustness Evidence
+
+- Gemini API failure falls back to deterministic trace — demo always completes.
+- Rawal Dam false alarm (credibility 0.10) detected, verified against NDMA sensors, publicly retracted.
+- Two simultaneous crises compete for limited ambulances — conflict resolved by severity priority.
+- Traffic rerouting side effect detected and alternate route activated automatically.
+- OpenWeatherMap unavailable → system continues with simulated weather signal.
+
+## Privacy And Safety
+
+All crisis signals are synthetic. No real citizen identity, phone number, live location, or emergency system is connected. Physical dispatch, utility cutoff, and public alerts are simulation-only. Irreversible real-world actions would require human approval in production.
+
+## Scalability
+
+- Cloud Run auto-scales horizontally; each request is stateless.
+- Gemini calls can be parallelized (currently sequential for trace clarity).
+- 10× scale: increase Cloud Run max instances; Vertex AI handles load automatically.
+- Production would add: persistent incident DB, real NDMA/traffic API webhooks, push notification service.
+
+## Limitations
+
+- Traffic, NDMA sensor, telecom, and utility APIs are simulated for prototype reliability.
+- All 6 Gemini calls are sequential — adds ~30s latency (parallelizable in production).
+- Crisis scenarios are pre-defined for the demo; production would ingest live data streams.
