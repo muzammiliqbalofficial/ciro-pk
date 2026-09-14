@@ -3,14 +3,14 @@
 # Google Antigravity Hackathon 2026 - Challenge 3 Submission Backend
 #
 # ARCHITECTURE WORKPLAN:
-# 1. SIGNAL_FUSION  -> Ingest weather, maps, social signals (Roman Urdu & English)
-# 2. CLASSIFIER     -> [Tool Calling] Parse simultaneous incidents (Flood & Accident)
-# 3. VERIFIER       -> Cross-reference Rawal Dam rumor against live NDMA sensor data
-# 4. PREDICTOR      -> Models flood radius expansion and peak impact window
-# 5. ALLOCATOR      -> [Tool Calling] Resolve ambulance/police resource conflicts
-# 6. ORCHESTRATOR   -> Exec 5-step action chain, evaluate secondary traffic routing
-# 7. NOTIFIER       -> Dispatch multilingual stakeholder alerts (SMS/Radio/Dashboard)
-# 8. GEMINI_REASON  -> Synthesize senior executive summary of the cycle
+# 1. SIGNAL_FUSION -> Ingest weather, maps, social signals (Roman Urdu & English)
+# 2. CLASSIFIER -> [Tool Calling] Parse simultaneous incidents (Flood & Accident)
+# 3. VERIFIER -> Cross-reference Rawal Dam rumor against live NDMA sensor data
+# 4. PREDICTOR -> Models flood radius expansion and peak impact window
+# 5. ALLOCATOR -> [Tool Calling] Resolve ambulance/police resource conflicts
+# 6. ORCHESTRATOR -> Exec 5-step action chain, evaluate secondary traffic routing
+# 7. NOTIFIER -> Dispatch multilingual stakeholder alerts (SMS/Radio/Dashboard)
+# 8. GEMINI_REASON -> Synthesize senior executive summary of the cycle
 #
 # GOOGLE AGENT PLATFORM SDK COMPLIANCE:
 # - Client: google-genai SDK with global connection reuse
@@ -54,19 +54,19 @@ def load_local_env():
 
 load_local_env()
 
-PROJECT   = os.environ.get("GOOGLE_CLOUD_PROJECT", "iro-pk-backend")
-MODEL     = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
-LOCATION  = "global"
+PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "iro-pk-backend")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
+LOCATION = "global"
 
 # Fallback model name for Google AI Studio if using the developer API key
 if os.environ.get("GEMINI_API_KEY") and MODEL == "gemini-3.1-flash-lite-preview":
     MODEL = "gemini-2.5-flash"
 
 
-FLOOD_SEVERITIES    = [7, 8, 8, 9]
+FLOOD_SEVERITIES = [7, 8, 8, 9]
 ACCIDENT_SEVERITIES = [8, 9, 9]
-RADII               = [2.8, 3.2, 3.5, 4.1]
-POPULATIONS         = [15000, 18000, 21000]
+RADII = [2.8, 3.2, 3.5, 4.1]
+POPULATIONS = [15000, 18000, 21000]
 
 PUBLIC_ALERTS = [
     "Khabardar: G-10 sector mein sailab ka khatra hai. Fori mehfooz maqam par jayen.",
@@ -124,16 +124,16 @@ CLASSIFY_TOOL = types.Tool(function_declarations=[
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "c1_type":       types.Schema(type=types.Type.STRING,  description="Crisis 1 type e.g. Urban Flood"),
-                "c1_location":   types.Schema(type=types.Type.STRING,  description="Crisis 1 location"),
-                "c1_severity":   types.Schema(type=types.Type.INTEGER, description="Crisis 1 severity 1-10"),
+                "c1_type": types.Schema(type=types.Type.STRING, description="Crisis 1 type e.g. Urban Flood"),
+                "c1_location": types.Schema(type=types.Type.STRING, description="Crisis 1 location"),
+                "c1_severity": types.Schema(type=types.Type.INTEGER, description="Crisis 1 severity 1-10"),
                 "c1_confidence": types.Schema(type=types.Type.INTEGER, description="Confidence % 0-100"),
-                "c1_summary":    types.Schema(type=types.Type.STRING,  description="One-line classification reason"),
-                "c2_type":       types.Schema(type=types.Type.STRING,  description="Crisis 2 type"),
-                "c2_location":   types.Schema(type=types.Type.STRING,  description="Crisis 2 location"),
-                "c2_severity":   types.Schema(type=types.Type.INTEGER, description="Crisis 2 severity 1-10"),
+                "c1_summary": types.Schema(type=types.Type.STRING, description="One-line classification reason"),
+                "c2_type": types.Schema(type=types.Type.STRING, description="Crisis 2 type"),
+                "c2_location": types.Schema(type=types.Type.STRING, description="Crisis 2 location"),
+                "c2_severity": types.Schema(type=types.Type.INTEGER, description="Crisis 2 severity 1-10"),
                 "c2_confidence": types.Schema(type=types.Type.INTEGER, description="Confidence % 0-100"),
-                "c2_summary":    types.Schema(type=types.Type.STRING,  description="One-line classification reason"),
+                "c2_summary": types.Schema(type=types.Type.STRING, description="One-line classification reason"),
             },
             required=["c1_type","c1_location","c1_severity","c1_confidence","c1_summary",
                       "c2_type","c2_location","c2_severity","c2_confidence","c2_summary"],
@@ -148,13 +148,13 @@ ALLOCATE_TOOL = types.Tool(function_declarations=[
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
-                "rta_ambulances":     types.Schema(type=types.Type.INTEGER, description="Ambulances assigned to road accident"),
-                "flood_ambulances":   types.Schema(type=types.Type.INTEGER, description="Ambulances assigned to flood"),
+                "rta_ambulances": types.Schema(type=types.Type.INTEGER, description="Ambulances assigned to road accident"),
+                "flood_ambulances": types.Schema(type=types.Type.INTEGER, description="Ambulances assigned to flood"),
                 "reserve_ambulances": types.Schema(type=types.Type.INTEGER, description="Ambulances held in reserve"),
-                "rta_police":         types.Schema(type=types.Type.INTEGER, description="Police units for RTA"),
-                "flood_police":       types.Schema(type=types.Type.INTEGER, description="Police units for flood"),
-                "priority_crisis":    types.Schema(type=types.Type.STRING,  description="Which crisis is prioritized"),
-                "rationale":          types.Schema(type=types.Type.STRING,  description="Allocation decision reasoning"),
+                "rta_police": types.Schema(type=types.Type.INTEGER, description="Police units for RTA"),
+                "flood_police": types.Schema(type=types.Type.INTEGER, description="Police units for flood"),
+                "priority_crisis": types.Schema(type=types.Type.STRING, description="Which crisis is prioritized"),
+                "rationale": types.Schema(type=types.Type.STRING, description="Allocation decision reasoning"),
             },
             required=["rta_ambulances","flood_ambulances","reserve_ambulances","priority_crisis","rationale"],
         ),
@@ -286,11 +286,11 @@ def fetch_weather_signal():
         req = urllib_request.Request(url, headers={"User-Agent": "CIRO-PK"})
         with urllib_request.urlopen(req, timeout=8) as res:
             d = json.loads(res.read().decode())
-        desc     = d.get("weather", [{}])[0].get("description", "clear")
-        temp     = d.get("main", {}).get("temp", 30)
+        desc = d.get("weather", [{}])[0].get("description", "clear")
+        temp = d.get("main", {}).get("temp", 30)
         humidity = d.get("main", {}).get("humidity", 50)
-        rain_1h  = d.get("rain", {}).get("1h", 0)
-        wind     = d.get("wind", {}).get("speed", 0)
+        rain_1h = d.get("rain", {}).get("1h", 0)
+        wind = d.get("wind", {}).get("speed", 0)
         return {
             "id": "S_LIVE", "time": "LIVE", "source": "OpenWeatherMap API",
             "text": f"Live Islamabad: {desc}, {temp}°C, humidity {humidity}%, rain {rain_1h}mm/hr, wind {wind}m/s",
@@ -339,12 +339,12 @@ def make_trace(signals, start_ts):
         f"{len(all_signals)} multi-modal signals ingested from {', '.join(sources)}. "
         "Languages: Urdu, Roman Urdu, English. Noise filter removed duplicates; credibility scoring applied.")
 
-    sev_f  = random.choice(FLOOD_SEVERITIES)
-    sev_a  = random.choice(ACCIDENT_SEVERITIES)
-    rad    = random.choice(RADII)
-    pop    = random.choice(POPULATIONS)
-    dur    = round(random.uniform(3.5, 5.0), 1)
-    peak   = random.randint(20, 30)
+    sev_f = random.choice(FLOOD_SEVERITIES)
+    sev_a = random.choice(ACCIDENT_SEVERITIES)
+    rad = random.choice(RADII)
+    pop = random.choice(POPULATIONS)
+    dur = round(random.uniform(3.5, 5.0), 1)
+    peak = random.randint(20, 30)
 
     sensor_level = random.randint(138, 145)
 
@@ -407,9 +407,9 @@ def make_trace(signals, start_ts):
 
     if alloc:
         amb_accident = int(alloc.get("rta_ambulances", 3))
-        amb_flood    = int(alloc.get("flood_ambulances", 3))
-        amb_reserve  = int(alloc.get("reserve_ambulances", 2))
-        rta_police   = int(alloc.get("rta_police", 4))
+        amb_flood = int(alloc.get("flood_ambulances", 3))
+        amb_reserve = int(alloc.get("reserve_ambulances", 2))
+        rta_police = int(alloc.get("rta_police", 4))
         flood_police = int(alloc.get("flood_police", 6))
         log("ALLOCATOR",
             f"[Tool: allocate_emergency_resources] Priority: {alloc.get('priority_crisis','RTA')} | "
@@ -418,9 +418,9 @@ def make_trace(signals, start_ts):
         log("ALLOCATOR", f"Rationale: {alloc.get('rationale','Severity-based priority with 20% reserve maintained.')}")
     else:
         amb_accident = random.randint(3, 4)
-        amb_flood    = 8 - amb_accident - 2
-        amb_reserve  = 2
-        rta_police   = 4
+        amb_flood = 8 - amb_accident - 2
+        amb_reserve = 2
+        rta_police = 4
         flood_police = 6
         log("ALLOCATOR", f"Resource conflict: RTA Sev {sev_a} outranks flood Sev {sev_f}. 20% reserve enforced.")
         log("ALLOCATOR", f"Allocated {amb_accident} ambulances to RTA; {amb_flood} to flood; {amb_reserve} reserve.")
@@ -453,11 +453,11 @@ def make_trace(signals, start_ts):
     ]
 
     notifications = [
-        {"audience": "Public",   "channel": "SMS",       "language": "Roman Urdu", "message": random.choice(PUBLIC_ALERTS),    "sent": True},
-        {"audience": "Hospital", "channel": "Dashboard", "language": "English",    "message": f"Mass casualty RTA Kashmir Hwy. Prepare trauma bay for {random.randint(4,7)}+ casualties.", "sent": True},
-        {"audience": "IESCO",    "channel": "Email",     "language": "English",    "message": "Emergency power cutoff required at G-10 substation.", "sent": True},
-        {"audience": "Media",    "channel": "WhatsApp",  "language": "Roman Urdu", "message": random.choice(ROMAN_URDU_ALERTS), "sent": True},
-        {"audience": "Police",   "channel": "Radio",     "language": "Roman Urdu", "message": "Kashmir Highway Faizabad: ambulance corridor clear karein.", "sent": True},
+        {"audience": "Public", "channel": "SMS", "language": "Roman Urdu", "message": random.choice(PUBLIC_ALERTS), "sent": True},
+        {"audience": "Hospital", "channel": "Dashboard", "language": "English", "message": f"Mass casualty RTA Kashmir Hwy. Prepare trauma bay for {random.randint(4,7)}+ casualties.", "sent": True},
+        {"audience": "IESCO", "channel": "Email", "language": "English", "message": "Emergency power cutoff required at G-10 substation.", "sent": True},
+        {"audience": "Media", "channel": "WhatsApp", "language": "Roman Urdu", "message": random.choice(ROMAN_URDU_ALERTS), "sent": True},
+        {"audience": "Police", "channel": "Radio", "language": "Roman Urdu", "message": "Kashmir Highway Faizabad: ambulance corridor clear karein.", "sent": True},
     ]
 
     # Stage 3: Run ORCHESTRATOR and GEMINI_REASONER in parallel
@@ -469,7 +469,7 @@ def make_trace(signals, start_ts):
         final = future_final.result()
 
     for action in actions:
-        speed  = action["response_time_improvement_pct"]
+        speed = action["response_time_improvement_pct"]
         suffix = f" | {speed}% faster." if speed else "."
         log("ORCHESTRATOR",
             f"OK Step {action['step']}: {action['action'].upper().replace('_',' ')} -> "
@@ -501,7 +501,7 @@ def make_trace(signals, start_ts):
 
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
-    signals  = (flask_request.get_json(silent=True) or {}).get("signals", [])
+    signals = (flask_request.get_json(silent=True) or {}).get("signals", [])
     start_ts = time.time()
     trace, crises, allocations, notifications, actions, false_alarms, gemini_status = make_trace(signals, start_ts)
     return jsonify({
